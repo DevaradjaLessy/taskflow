@@ -1,0 +1,31 @@
+name: TaskFlow CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v3
+
+      - name: Installation Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Installation des dépendances
+        run: npm install
+
+      - name: Lancement des tests
+        run: node app.test.js
+
+      - name: Build image Docker
+        run: docker build -t taskflow:latest .
+
+      - name: Déploiement simulé
+        run: echo "Déploiement de taskflow:latest sur serveur de test... OK !"
