@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TaskFlow — Gestion de tickets</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   RESET & VARIABLES
+============================================================ */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --blue-50:  #eff6ff;
+  --blue-100: #dbeafe;
+  --blue-300: #93c5fd;
+  --blue-500: #3b82f6;
+  --blue-600: #2563eb;
+  --blue-700: #1d4ed8;
+  --gray-50:  #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
+  --green-100: #dcfce7;
+  --green-600: #16a34a;
+  --green-700: #15803d;
+  --orange-100: #ffedd5;
+  --orange-600: #ea580c;
+  --red-100: #fee2e2;
+  --red-500: #ef4444;
+  --red-600: #dc2626;
+  --purple-600: #9333ea;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.05);
+  --shadow:    0 1px 3px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,.1), 0 2px 4px -1px rgba(0,0,0,.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -2px rgba(0,0,0,.05);
+  --sidebar-w: 240px;
+}
+
+/* ============================================================
+   BASE
+============================================================ */
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--gray-50);
+  color: var(--gray-900);
+  min-height: 100vh;
+  display: flex;
+}
+
+/* ============================================================
+   SIDEBAR
+============================================================ */
+.sidebar {
+  width: var(--sidebar-w);
+  background: white;
+  border-right: 1px solid var(--gray-200);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  z-index: 20;
+  transition: transform 0.25s ease;
+}
+
+.sidebar-logo {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--gray-100);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.logo-icon {
+  width: 32px; height: 32px;
+  background: var(--blue-600);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-weight: 700; font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.logo-name { font-weight: 700; font-size: 1rem; }
+.logo-ver  { font-size: 0.65rem; color: var(--gray-400); margin-top: 1px; }
+
+.sidebar-nav { padding: 1rem 0.75rem; flex: 1; overflow-y: auto; }
+
+.nav-section {
+  font-size: 0.68rem; font-weight: 700; color: var(--gray-400);
+  text-transform: uppercase; letter-spacing: 0.08em;
+  padding: 0 0.75rem; margin: 1.2rem 0 0.4rem;
+}
+
+.nav-item {
+  display: flex; align-items: center; gap: 0.65rem;
+  padding: 0.55rem 0.75rem; border-radius: 8px;
+  font-size: 0.875rem; font-weight: 500; color: var(--gray-600);
+  cursor: pointer; transition: all 0.15s;
+  border: none; background: none; width: 100%; text-align: left;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.nav-item:hover  { background: var(--gray-50); color: var(--gray-900); }
+.nav-item.active { background: var(--blue-50); color: var(--blue-600); }
+.nav-item svg    { width: 16px; height: 16px; flex-shrink: 0; }
+
+.nav-count {
+  margin-left: auto;
+  background: var(--blue-100); color: var(--blue-600);
+  font-size: 0.7rem; font-weight: 700;
+  padding: 0.1rem 0.5rem; border-radius: 999px;
+  min-width: 20px; text-align: center;
+}
+
+.sidebar-footer {
+  padding: 0.875rem 1rem;
+  border-top: 1px solid var(--gray-100);
+}
+
+.user-card {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.5rem; border-radius: 8px; cursor: default;
+}
+
+.avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--blue-500), var(--purple-600));
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-size: 0.72rem; font-weight: 700; flex-shrink: 0;
+}
+
+.user-name { font-size: 0.825rem; font-weight: 600; color: var(--gray-700); }
+.user-role { font-size: 0.72rem; color: var(--gray-400); }
+
+/* ============================================================
+   MAIN LAYOUT
+============================================================ */
+.main {
+  margin-left: var(--sidebar-w);
+  flex: 1; display: flex; flex-direction: column; min-height: 100vh;
+}
+
+/* ============================================================
+   TOPBAR
+============================================================ */
+.topbar {
+  background: white; border-bottom: 1px solid var(--gray-200);
+  height: 60px; padding: 0 1.75rem;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 10;
+}
+
+.topbar-left { display: flex; align-items: center; gap: 0.4rem; }
+.breadcrumb  { font-size: 0.825rem; color: var(--gray-400); }
+.page-title  { font-size: 0.95rem; font-weight: 600; }
+
+.topbar-right { display: flex; align-items: center; gap: 0.75rem; }
+
+/* menu burger mobile */
+.burger {
+  display: none; background: none; border: none; cursor: pointer;
+  padding: 0.4rem; border-radius: 6px; color: var(--gray-600);
+}
+
+/* ============================================================
+   SEARCH
+============================================================ */
+.search-wrap {
+  display: flex; align-items: center; gap: 0.5rem;
+  background: var(--gray-100); border: 1px solid transparent;
+  border-radius: 8px; padding: 0.4rem 0.75rem;
+  transition: all 0.15s;
+}
+
+.search-wrap:focus-within {
+  background: white; border-color: var(--blue-300);
+  box-shadow: 0 0 0 3px rgba(59,130,246,.1);
+}
+
+.search-wrap input {
+  border: none; background: transparent; outline: none;
+  font-size: 0.825rem; color: var(--gray-700);
+  font-family: 'DM Sans', sans-serif; width: 200px;
+}
+
+.search-wrap input::placeholder { color: var(--gray-400); }
+
+/* ============================================================
+   BUTTONS
+============================================================ */
+.btn {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  padding: 0.5rem 1rem; border-radius: 8px;
+  font-size: 0.825rem; font-weight: 500; cursor: pointer;
+  border: none; transition: all 0.15s;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.btn:focus-visible { outline: 2px solid var(--blue-500); outline-offset: 2px; }
+
+.btn-primary { background: var(--blue-600); color: white; }
+.btn-primary:hover { background: var(--blue-700); box-shadow: var(--shadow-md); }
+
+.btn-ghost {
+  background: transparent; color: var(--gray-600);
+  border: 1px solid var(--gray-200);
+}
+.btn-ghost:hover { background: var(--gray-50); border-color: var(--gray-300); }
+
+.btn-danger { background: var(--red-600); color: white; }
+.btn-danger:hover { background: #b91c1c; }
+
+/* ============================================================
+   CONTENT
+============================================================ */
+.content { padding: 1.75rem; flex: 1; }
+
+/* ============================================================
+   STATS GRID
+============================================================ */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem; margin-bottom: 1.75rem;
+}
+
+.stat-card {
+  background: white; border: 1px solid var(--gray-200);
+  border-radius: 12px; padding: 1.25rem;
+  box-shadow: var(--shadow-sm); transition: all 0.2s;
+}
+
+.stat-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+
+.stat-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.stat-label { font-size: 0.78rem; font-weight: 600; color: var(--gray-500); }
+
+.stat-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.stat-number {
+  font-size: 1.8rem; font-weight: 700; line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.stat-sub { font-size: 0.75rem; color: var(--gray-400); }
+
+/* ============================================================
+   SECTION HEADER
+============================================================ */
+.section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;
+}
+
+.section-title { font-size: 0.9rem; font-weight: 700; color: var(--gray-800); }
+
+.filters { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+.filter-btn {
+  padding: 0.35rem 0.8rem; border-radius: 6px;
+  font-size: 0.775rem; font-weight: 500; cursor: pointer;
+  border: 1px solid var(--gray-200); background: white;
+  color: var(--gray-600); font-family: 'DM Sans', sans-serif;
+  transition: all 0.15s;
+}
+
+.filter-btn:hover  { border-color: var(--blue-300); color: var(--blue-600); }
+.filter-btn.active { background: var(--blue-50); border-color: var(--blue-500); color: var(--blue-600); font-weight: 600; }
+
+/* ============================================================
+   TABLE
+============================================================ */
+.tickets-card {
+  background: white; border: 1px solid var(--gray-200);
+  border-radius: 12px; box-shadow: var(--shadow-sm); overflow: hidden;
+}
+
+.table-head {
+  display: grid;
+  grid-template-columns: 2.2fr 1fr 1fr 1fr 0.9fr 88px;
+  gap: 0.75rem; padding: 0.7rem 1.25rem;
+  background: var(--gray-50); border-bottom: 1px solid var(--gray-200);
+  font-size: 0.72rem; font-weight: 700; color: var(--gray-500);
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+
+.ticket-row {
+  display: grid;
+  grid-template-columns: 2.2fr 1fr 1fr 1fr 0.9fr 88px;
+  gap: 0.75rem; padding: 0.9rem 1.25rem;
+  border-bottom: 1px solid var(--gray-100);
+  align-items: center; cursor: default; transition: background 0.1s;
+}
+
+.ticket-row:last-child { border-bottom: none; }
+.ticket-row:hover { background: var(--gray-50); }
+
+.ticket-id    { font-family:'DM Mono',monospace; font-size:0.72rem; color:var(--gray-400); }
+.ticket-title { font-size:0.875rem; font-weight:500; color:var(--gray-800); margin:0.1rem 0; }
+.ticket-desc  {
+  font-size:0.775rem; color:var(--gray-400);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:300px;
+}
+
+/* ============================================================
+   BADGES
+============================================================ */
+.badge {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  padding: 0.22rem 0.6rem; border-radius: 6px;
+  font-size: 0.75rem; font-weight: 600; width: fit-content;
+  white-space: nowrap;
+}
+
+.dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+
+/* status */
+.s-ouvert   { background:var(--blue-50);    color:var(--blue-600); }
+.s-ouvert   .dot { background:var(--blue-500); }
+.s-encours  { background:var(--orange-100); color:var(--orange-600); }
+.s-encours  .dot { background:var(--orange-600); }
+.s-resolu   { background:var(--green-100);  color:var(--green-600); }
+.s-resolu   .dot { background:var(--green-600); }
+
+/* priority */
+.p-haute   { background:var(--red-100);    color:var(--red-600); }
+.p-moyenne { background:var(--orange-100); color:var(--orange-600); }
+.p-basse   { background:var(--green-100);  color:var(--green-600); }
+
+/* status badge is clickable */
+.status-badge-btn {
+  cursor: pointer; border: none; background: none; padding: 0;
+  font-family: inherit;
+}
+.status-badge-btn:hover .badge { opacity: 0.8; }
+.status-badge-btn:focus-visible { outline: 2px solid var(--blue-500); border-radius: 6px; }
+
+/* ============================================================
+   ASSIGNEE
+============================================================ */
+.assignee-wrap { display:flex; align-items:center; gap:0.5rem; }
+
+.mini-avatar {
+  width:24px; height:24px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:0.62rem; font-weight:700; color:white; flex-shrink:0;
+}
+
+.assignee-name { font-size:0.8rem; color:var(--gray-700); }
+.date-val      { font-size:0.8rem; color:var(--gray-500); font-family:'DM Mono',monospace; }
+
+/* ============================================================
+   ROW ACTIONS
+============================================================ */
+.row-actions { display:flex; gap:0.25rem; }
+
+.icon-btn {
+  width:28px; height:28px; border-radius:6px; border:none;
+  background:transparent; cursor:pointer; display:flex;
+  align-items:center; justify-content:center;
+  color:var(--gray-400); transition:all 0.15s;
+}
+
+.icon-btn:hover        { background:var(--gray-100); color:var(--gray-700); }
+.icon-btn.del:hover    { background:var(--red-100); color:var(--red-600); }
+.icon-btn:focus-visible { outline:2px solid var(--blue-500); }
+
+/* ============================================================
+   EMPTY STATE
+============================================================ */
+.empty-state {
+  padding: 3.5rem 2rem; text-align: center;
+}
+
+.empty-icon {
+  width: 48px; height: 48px; border-radius: 12px;
+  background: var(--gray-100); display: flex;
+  align-items: center; justify-content: center; margin: 0 auto 1rem;
+  color: var(--gray-400);
+}
+
+.empty-title { font-size: 0.925rem; font-weight: 600; color: var(--gray-700); margin-bottom: 0.25rem; }
+.empty-sub   { font-size: 0.825rem; color: var(--gray-400); }
+
+/* ============================================================
+   TABLE FOOTER
+============================================================ */
+.table-footer {
+  padding: 0.75rem 1.25rem; border-top: 1px solid var(--gray-100);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 0.5rem;
+}
+
+.table-info { font-size: 0.8rem; color: var(--gray-500); }
+
+.pagination { display:flex; gap:0.25rem; }
+
+.page-btn {
+  width:30px; height:30px; border-radius:6px;
+  border:1px solid var(--gray-200); background:white;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  font-size:0.8rem; color:var(--gray-600); font-family:'DM Sans',sans-serif;
+  transition:all 0.15s;
+}
+
+.page-btn:hover          { border-color:var(--blue-300); color:var(--blue-600); }
+.page-btn.active         { background:var(--blue-600); border-color:var(--blue-600); color:white; }
+.page-btn:disabled       { opacity:.4; cursor:not-allowed; }
+.page-btn:focus-visible  { outline:2px solid var(--blue-500); }
+
+/* ============================================================
+   MODAL
+============================================================ */
+.overlay {
+  position: fixed; inset: 0; z-index: 50;
+  background: rgba(0,0,0,.35); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 1rem;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s;
+}
+
+.overlay.open { opacity: 1; pointer-events: all; }
+
+.modal {
+  background: white; border-radius: 16px; box-shadow: var(--shadow-lg);
+  width: 520px; max-width: 100%;
+  transform: scale(.96) translateY(8px);
+  transition: transform 0.2s;
+}
+
+.overlay.open .modal { transform: scale(1) translateY(0); }
+
+.modal-head {
+  padding: 1.2rem 1.5rem; border-bottom: 1px solid var(--gray-100);
+  display: flex; align-items: center; justify-content: space-between;
+}
+
+.modal-title { font-size: 0.975rem; font-weight: 700; }
+
+.modal-close {
+  width: 28px; height: 28px; border-radius: 6px;
+  border: none; background: var(--gray-100); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--gray-500); font-size: 1rem; line-height: 1;
+  transition: all 0.15s; font-family: inherit;
+}
+
+.modal-close:hover { background: var(--gray-200); }
+.modal-close:focus-visible { outline: 2px solid var(--blue-500); }
+
+.modal-body { padding: 1.4rem 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+
+.form-group  { display: flex; flex-direction: column; gap: 0.35rem; }
+.form-label  { font-size: 0.8rem; font-weight: 600; color: var(--gray-700); }
+.form-label .req { color: var(--red-500); margin-left: 2px; }
+
+.form-input, .form-select, .form-textarea {
+  padding: 0.6rem 0.85rem; border: 1px solid var(--gray-200);
+  border-radius: 8px; font-size: 0.875rem;
+  font-family: 'DM Sans', sans-serif; color: var(--gray-800);
+  outline: none; transition: all 0.15s; background: white; width: 100%;
+}
+
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  border-color: var(--blue-500);
+  box-shadow: 0 0 0 3px rgba(59,130,246,.1);
+}
+
+.form-input.error { border-color: var(--red-500); box-shadow: 0 0 0 3px rgba(239,68,68,.1); }
+
+.form-error { font-size: 0.75rem; color: var(--red-500); margin-top: 0.2rem; display: none; }
+.form-error.show { display: block; }
+
+.form-textarea { resize: vertical; min-height: 80px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+.modal-foot {
+  padding: 1rem 1.5rem; border-top: 1px solid var(--gray-100);
+  display: flex; justify-content: flex-end; gap: 0.5rem;
+}
+
+/* ============================================================
+   CONFIRM MODAL
+============================================================ */
+.confirm-modal { max-width: 380px; }
+.confirm-body  { padding: 1.4rem 1.5rem; }
+.confirm-icon  {
+  width: 44px; height: 44px; border-radius: 12px;
+  background: var(--red-100); display: flex; align-items: center;
+  justify-content: center; margin-bottom: 1rem; color: var(--red-600);
+}
+.confirm-title { font-size: 0.975rem; font-weight: 700; margin-bottom: 0.35rem; }
+.confirm-sub   { font-size: 0.85rem; color: var(--gray-500); }
+
+/* ============================================================
+   TOAST
+============================================================ */
+.toast {
+  position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 100;
+  background: var(--gray-900); color: white;
+  padding: 0.75rem 1.2rem; border-radius: 10px;
+  font-size: 0.85rem; font-weight: 500; box-shadow: var(--shadow-lg);
+  display: flex; align-items: center; gap: 0.6rem;
+  transform: translateY(80px); opacity: 0;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: none; max-width: 320px;
+}
+
+.toast.show { transform: translateY(0); opacity: 1; }
+
+/* ============================================================
+   RESPONSIVE
+============================================================ */
+@media (max-width: 900px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 768px) {
+  :root { --sidebar-w: 0px; }
+
+  .sidebar {
+    width: 240px;
+    transform: translateX(-100%);
+  }
+
+  .sidebar.open { transform: translateX(0); }
+
+  .main { margin-left: 0; }
+
+  .burger { display: flex; }
+
+  .search-wrap input { width: 140px; }
+
+  .table-head,
+  .ticket-row {
+    grid-template-columns: 1fr 1fr 80px;
+  }
+
+  .table-head span:nth-child(3),
+  .table-head span:nth-child(4),
+  .table-head span:nth-child(5),
+  .ticket-row > div:nth-child(4),
+  .ticket-row > div:nth-child(5) {
+    display: none;
+  }
+
+  .content { padding: 1rem; }
+  .stats-grid { grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  .form-row { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+  .stats-grid { grid-template-columns: 1fr; }
+  .search-wrap { display: none; }
+  .topbar-right .btn span { display: none; }
+}
+
+/* overlay for mobile sidebar */
+.sidebar-backdrop {
+  display: none; position: fixed; inset: 0; z-index: 19;
+  background: rgba(0,0,0,.3);
+}
+.sidebar-backdrop.show { display: block; }
+</style>
+</head>
+<body>
+
+<!-- ==================== SIDEBAR ==================== -->
+<aside class="sidebar" id="sidebar" role="navigation" aria-label="Menu principal">
+  <div class="sidebar-logo">
+    <div class="logo-icon" aria-hidden="true">TF</div>
+    <div>
+      <div class="logo-name">TaskFlow</div>
+      <div class="logo-ver">v1.0 — TP CI/CD</div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <button class="nav-item active" aria-current="page">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+      Tickets
+      <span class="nav-count" id="navCount" aria-label="nombre de tickets">0</span>
+    </button>
+    <button class="nav-item">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+      Projets
+    </button>
+    <button class="nav-item">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      Équipe
+    </button>
+
+    <p class="nav-section">Rapports</p>
+    <button class="nav-item">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+      Analytiques
+    </button>
+    <button class="nav-item">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      Paramètres
+    </button>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="user-card">
+      <div class="avatar" aria-hidden="true">DL</div>
+      <div>
+        <div class="user-name">Dévaradja Lessy</div>
+        <div class="user-role">Admin SI · SEMAC</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeSidebar()"></div>
+
+<!-- ==================== MAIN ==================== -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="burger" id="burgerBtn" aria-label="Ouvrir le menu" onclick="toggleSidebar()">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <span class="breadcrumb">TaskFlow /</span>
+      <span class="page-title">Tickets</span>
+    </div>
+    <div class="topbar-right">
+      <div class="search-wrap" role="search">
+        <svg width="14" height="14" fill="none" stroke="var(--gray-400)" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <input type="search" id="searchInput" placeholder="Rechercher…" aria-label="Rechercher un ticket" oninput="onSearch()">
+      </div>
+      <button class="btn btn-primary" onclick="openCreateModal()" aria-haspopup="dialog">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        <span>Nouveau ticket</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- CONTENT -->
+  <main class="content" id="mainContent">
+
+    <!-- STATS -->
+    <div class="stats-grid" role="region" aria-label="Statistiques">
+      <div class="stat-card">
+        <div class="stat-head">
+          <span class="stat-label">Total tickets</span>
+          <div class="stat-icon" style="background:#eff6ff">
+            <svg width="16" height="16" fill="none" stroke="#3b82f6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+          </div>
+        </div>
+        <div class="stat-number" id="statTotal">0</div>
+        <div class="stat-sub">tickets enregistrés</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-head">
+          <span class="stat-label">Ouverts</span>
+          <div class="stat-icon" style="background:#dbeafe">
+            <svg width="16" height="16" fill="none" stroke="#2563eb" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="2"/><path stroke-linecap="round" stroke-width="2" d="M12 8v4l3 3"/></svg>
+          </div>
+        </div>
+        <div class="stat-number" id="statOpen" style="color:#2563eb">0</div>
+        <div class="stat-sub">en attente</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-head">
+          <span class="stat-label">En cours</span>
+          <div class="stat-icon" style="background:#ffedd5">
+            <svg width="16" height="16" fill="none" stroke="#ea580c" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          </div>
+        </div>
+        <div class="stat-number" id="statProgress" style="color:#ea580c">0</div>
+        <div class="stat-sub">en traitement</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-head">
+          <span class="stat-label">Résolus</span>
+          <div class="stat-icon" style="background:#dcfce7">
+            <svg width="16" height="16" fill="none" stroke="#16a34a" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          </div>
+        </div>
+        <div class="stat-number" id="statResolved" style="color:#16a34a">0</div>
+        <div class="stat-sub">tickets fermés</div>
+      </div>
+    </div>
+
+    <!-- TABLE HEADER + FILTERS -->
+    <div class="section-header">
+      <span class="section-title">Liste des tickets</span>
+      <div class="filters" role="group" aria-label="Filtrer par statut">
+        <button class="filter-btn active" onclick="setFilter('tous',this)">Tous</button>
+        <button class="filter-btn" onclick="setFilter('ouvert',this)">Ouverts</button>
+        <button class="filter-btn" onclick="setFilter('en cours',this)">En cours</button>
+        <button class="filter-btn" onclick="setFilter('résolu',this)">Résolus</button>
+      </div>
+    </div>
+
+    <div class="tickets-card" role="region" aria-label="Tableau des tickets">
+      <div class="table-head" role="rowgroup">
+        <span>Titre</span>
+        <span>Statut</span>
+        <span>Priorité</span>
+        <span>Assigné à</span>
+        <span>Date</span>
+        <span>Actions</span>
+      </div>
+
+      <div id="ticketsList" role="rowgroup"></div>
+
+      <div class="table-footer">
+        <span class="table-info" id="tableInfo" aria-live="polite"></span>
+        <div class="pagination" id="pagination" role="navigation" aria-label="Pagination"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ==================== MODAL CRÉATION ==================== -->
+<div class="overlay" id="createOverlay" role="dialog" aria-modal="true" aria-labelledby="createTitle">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title" id="createTitle">Nouveau ticket</span>
+      <button class="modal-close" onclick="closeCreateModal()" aria-label="Fermer">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label" for="fTitle">Titre <span class="req" aria-hidden="true">*</span></label>
+        <input class="form-input" id="fTitle" type="text" placeholder="Ex : Imprimante hors ligne bureau 2A" autocomplete="off" maxlength="120">
+        <span class="form-error" id="fTitleErr" role="alert">Le titre est obligatoire.</span>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="fDesc">Description</label>
+        <textarea class="form-textarea" id="fDesc" placeholder="Détails, contexte, étapes pour reproduire…" maxlength="500"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="fPrio">Priorité</label>
+          <select class="form-select" id="fPrio">
+            <option value="haute">🔴 Haute</option>
+            <option value="moyenne" selected>🟡 Moyenne</option>
+            <option value="basse">🟢 Basse</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="fAssignee">Assigné à</label>
+          <select class="form-select" id="fAssignee">
+            <option value="DL">Dévaradja Lessy</option>
+            <option value="MA">Marie A.</option>
+            <option value="TC">Thomas C.</option>
+            <option value="SB">Sophie B.</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeCreateModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="submitCreate()">Créer le ticket</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== MODAL CONFIRMATION SUPPRESSION ==================== -->
+<div class="overlay" id="confirmOverlay" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+  <div class="modal confirm-modal">
+    <div class="modal-head">
+      <span class="modal-title" id="confirmTitle">Confirmer la suppression</span>
+      <button class="modal-close" onclick="closeConfirm()" aria-label="Fermer">✕</button>
+    </div>
+    <div class="confirm-body">
+      <div class="confirm-icon" aria-hidden="true">
+        <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+      </div>
+      <p class="confirm-title">Supprimer ce ticket ?</p>
+      <p class="confirm-sub" id="confirmSub">Cette action est irréversible.</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeConfirm()">Annuler</button>
+      <button class="btn btn-danger" onclick="confirmDelete()">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TOAST ==================== -->
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- ==================== SCRIPT ==================== -->
+<script>
+/* ============================================================
+   CONSTANTS & DATA
+============================================================ */
+const MEMBERS = {
+  DL: { name: 'Dévaradja L.', color: 'linear-gradient(135deg,#3b82f6,#8b5cf6)' },
+  MA: { name: 'Marie A.',      color: 'linear-gradient(135deg,#ec4899,#f97316)' },
+  TC: { name: 'Thomas C.',     color: 'linear-gradient(135deg,#10b981,#3b82f6)' },
+  SB: { name: 'Sophie B.',     color: 'linear-gradient(135deg,#f59e0b,#ef4444)' },
+};
+
+const STATUS_CYCLE = ['ouvert', 'en cours', 'résolu'];
+
+const STATUS_META = {
+  'ouvert':   { cls: 's-ouvert',  label: 'Ouvert'   },
+  'en cours': { cls: 's-encours', label: 'En cours' },
+  'résolu':   { cls: 's-resolu',  label: 'Résolu'   },
+};
+
+const PRIO_META = {
+  'haute':   { cls: 'p-haute',   label: 'Haute'   },
+  'moyenne': { cls: 'p-moyenne', label: 'Moyenne' },
+  'basse':   { cls: 'p-basse',   label: 'Basse'   },
+};
+
+let tickets = [
+  { id:'TF-001', title:'Impossible de se connecter au VPN',     desc:'Erreur 403 depuis le réseau externe — affecte 3 collaborateurs.',      status:'en cours', priority:'haute',   assignee:'DL', date:'20/05/2026' },
+  { id:'TF-002', title:'Imprimante réseau hors ligne (bureau 3B)', desc:'L\'imprimante ne répond plus depuis ce matin.',                       status:'ouvert',   priority:'moyenne', assignee:'MA', date:'20/05/2026' },
+  { id:'TF-003', title:'Mise à jour Windows bloquée à 87 %',    desc:'Windows Update bloqué sur 5 postes du service RH depuis 2 jours.',     status:'résolu',   priority:'haute',   assignee:'TC', date:'19/05/2026' },
+  { id:'TF-004', title:'Accès Active Directory refusé',         desc:'Nouvel employé — accès aux partages réseau impossibles.',               status:'ouvert',   priority:'haute',   assignee:'DL', date:'19/05/2026' },
+  { id:'TF-005', title:'Lenteur application métier (stocks)',   desc:'Application très lente depuis lundi matin, impact sur la productivité.',status:'en cours', priority:'moyenne', assignee:'SB', date:'18/05/2026' },
+  { id:'TF-006', title:'Écran noir au démarrage — poste DG',    desc:'PC du directeur commercial : écran noir après le logo Windows.',        status:'résolu',   priority:'haute',   assignee:'TC', date:'18/05/2026' },
+  { id:'TF-007', title:'Création compte email nouveau stagiaire', desc:'Stagiaire arrivant lundi 25/05 — besoin accès messagerie + Teams.',   status:'ouvert',   priority:'basse',   assignee:'MA', date:'17/05/2026' },
+];
+
+/* Calcule le prochain ID à partir du max existant */
+function nextId() {
+  const max = tickets.reduce((m, t) => {
+    const n = parseInt(t.id.replace('TF-', ''), 10);
+    return isNaN(n) ? m : Math.max(m, n);
+  }, 0);
+  return 'TF-' + String(max + 1).padStart(3, '0');
+}
+
+/* ============================================================
+   PAGINATION
+============================================================ */
+const PAGE_SIZE = 8;
+let currentPage = 1;
+
+/* ============================================================
+   STATE
+============================================================ */
+let currentFilter = 'tous';
+let pendingDeleteId = null;
+
+/* ============================================================
+   HELPERS
+============================================================ */
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function todayFR() {
+  return new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric' });
+}
+
+function getFiltered() {
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  return tickets.filter(t => {
+    const matchFilter = currentFilter === 'tous' || t.status === currentFilter;
+    const matchSearch = !q
+      || t.title.toLowerCase().includes(q)
+      || t.id.toLowerCase().includes(q)
+      || t.desc.toLowerCase().includes(q);
+    return matchFilter && matchSearch;
+  });
+}
+
+/* ============================================================
+   RENDER
+============================================================ */
+function render() {
+  const filtered  = getFiltered();
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+
+  // Clamp current page
+  if (currentPage > totalPages) currentPage = totalPages;
+
+  const start  = (currentPage - 1) * PAGE_SIZE;
+  const paged  = filtered.slice(start, start + PAGE_SIZE);
+  const list   = document.getElementById('ticketsList');
+
+  if (filtered.length === 0) {
+    const isSearch = document.getElementById('searchInput').value.trim() !== '';
+    list.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon" aria-hidden="true">
+          <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2"/>
+          </svg>
+        </div>
+        <p class="empty-title">${isSearch ? 'Aucun résultat' : 'Aucun ticket ici'}</p>
+        <p class="empty-sub">${isSearch ? 'Essayez un autre mot-clé ou changez le filtre.' : 'Créez votre premier ticket en cliquant sur « Nouveau ticket ».'}</p>
+      </div>`;
+  } else {
+    list.innerHTML = paged.map(t => buildRow(t)).join('');
+  }
+
+  updateStats();
+  updateTableInfo(filtered.length, start, Math.min(start + PAGE_SIZE, filtered.length));
+  renderPagination(totalPages);
+}
+
+function buildRow(t) {
+  const sm = STATUS_META[t.status] || { cls:'s-ouvert', label: t.status };
+  const pm = PRIO_META[t.priority] || { cls:'p-moyenne', label: t.priority };
+  const m  = MEMBERS[t.assignee] || { name: t.assignee, color: '#6b7280' };
+
+  return `
+    <div class="ticket-row" role="row">
+      <div role="cell">
+        <div class="ticket-id">${escHtml(t.id)}</div>
+        <div class="ticket-title">${escHtml(t.title)}</div>
+        <div class="ticket-desc">${escHtml(t.desc)}</div>
+      </div>
+
+      <div role="cell">
+        <button class="status-badge-btn"
+          onclick="cycleStatus('${escHtml(t.id)}')"
+          title="Changer le statut (clic pour faire avancer)"
+          aria-label="Statut : ${sm.label}. Cliquer pour changer.">
+          <span class="badge ${sm.cls}">
+            <span class="dot" aria-hidden="true"></span>${sm.label}
+          </span>
+        </button>
+      </div>
+
+      <div role="cell">
+        <span class="badge ${pm.cls}">${pm.label}</span>
+      </div>
+
+      <div class="assignee-wrap" role="cell">
+        <div class="mini-avatar" style="background:${m.color}" aria-hidden="true">${escHtml(t.assignee)}</div>
+        <span class="assignee-name">${escHtml(m.name)}</span>
+      </div>
+
+      <div class="date-val" role="cell">${escHtml(t.date)}</div>
+
+      <div class="row-actions" role="cell">
+        <button class="icon-btn del"
+          onclick="askDelete('${escHtml(t.id)}')"
+          title="Supprimer le ticket ${escHtml(t.id)}"
+          aria-label="Supprimer le ticket ${escHtml(t.id)}">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+          </svg>
+        </button>
+      </div>
+    </div>`;
+}
+
+function updateStats() {
+  document.getElementById('statTotal').textContent    = tickets.length;
+  document.getElementById('statOpen').textContent     = tickets.filter(t => t.status === 'ouvert').length;
+  document.getElementById('statProgress').textContent = tickets.filter(t => t.status === 'en cours').length;
+  document.getElementById('statResolved').textContent = tickets.filter(t => t.status === 'résolu').length;
+  document.getElementById('navCount').textContent     = tickets.length;
+}
+
+function updateTableInfo(total, from, to) {
+  const el = document.getElementById('tableInfo');
+  if (total === 0) { el.textContent = 'Aucun ticket'; return; }
+  el.textContent = `Affichage ${from + 1}–${to} sur ${total} ticket${total > 1 ? 's' : ''}`;
+}
+
+function renderPagination(totalPages) {
+  const p = document.getElementById('pagination');
+  if (totalPages <= 1) { p.innerHTML = ''; return; }
+
+  let html = `
+    <button class="page-btn" onclick="goPage(${currentPage - 1})"
+      ${currentPage === 1 ? 'disabled' : ''}
+      aria-label="Page précédente">‹</button>`;
+
+  for (let i = 1; i <= totalPages; i++) {
+    html += `<button class="page-btn ${i === currentPage ? 'active' : ''}"
+      onclick="goPage(${i})" aria-label="Page ${i}" ${i === currentPage ? 'aria-current="page"' : ''}>${i}</button>`;
+  }
+
+  html += `
+    <button class="page-btn" onclick="goPage(${currentPage + 1})"
+      ${currentPage === totalPages ? 'disabled' : ''}
+      aria-label="Page suivante">›</button>`;
+
+  p.innerHTML = html;
+}
+
+function goPage(n) {
+  const totalPages = Math.max(1, Math.ceil(getFiltered().length / PAGE_SIZE));
+  if (n < 1 || n > totalPages) return;
+  currentPage = n;
+  render();
+}
+
+/* ============================================================
+   FILTERS & SEARCH
+============================================================ */
+function setFilter(f, btn) {
+  currentFilter = f;
+  currentPage   = 1;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+function onSearch() {
+  currentPage = 1;
+  render();
+}
+
+/* ============================================================
+   STATUS CYCLE
+============================================================ */
+function cycleStatus(id) {
+  const t = tickets.find(x => x.id === id);
+  if (!t) return;
+  const idx  = STATUS_CYCLE.indexOf(t.status);
+  const next = STATUS_CYCLE[(idx + 1) % STATUS_CYCLE.length];
+  t.status   = next;
+  render();
+  toast(`🔄 ${id} — statut changé en « ${STATUS_META[next].label} »`);
+}
+
+/* ============================================================
+   CREATE MODAL
+============================================================ */
+function openCreateModal() {
+  // Reset ALL fields
+  document.getElementById('fTitle').value   = '';
+  document.getElementById('fDesc').value    = '';
+  document.getElementById('fPrio').value    = 'moyenne';
+  document.getElementById('fAssignee').value = 'DL';
+  clearError('fTitle', 'fTitleErr');
+
+  document.getElementById('createOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('fTitle').focus(), 80);
+}
+
+function closeCreateModal() {
+  document.getElementById('createOverlay').classList.remove('open');
+}
+
+function clearError(inputId, errId) {
+  document.getElementById(inputId).classList.remove('error');
+  document.getElementById(errId).classList.remove('show');
+}
+
+function submitCreate() {
+  const title = document.getElementById('fTitle').value.trim();
+
+  // Validation
+  if (!title) {
+    document.getElementById('fTitle').classList.add('error');
+    document.getElementById('fTitleErr').classList.add('show');
+    document.getElementById('fTitle').focus();
+    return;
+  }
+  clearError('fTitle', 'fTitleErr');
+
+  const id = nextId();
+
+  tickets.unshift({
+    id,
+    title,
+    desc:     document.getElementById('fDesc').value.trim() || 'Aucune description fournie.',
+    status:   'ouvert',
+    priority: document.getElementById('fPrio').value,
+    assignee: document.getElementById('fAssignee').value,
+    date:     todayFR(),
+  });
+
+  currentPage   = 1;
+  currentFilter = 'tous';
+  document.querySelectorAll('.filter-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
+
+  closeCreateModal();
+  render();
+  toast(`✅ Ticket ${id} créé avec succès`);
+}
+
+/* ============================================================
+   DELETE (avec confirmation)
+============================================================ */
+function askDelete(id) {
+  pendingDeleteId = id;
+  const t = tickets.find(x => x.id === id);
+  document.getElementById('confirmSub').textContent =
+    t ? `« ${t.title} » (${id}) sera définitivement supprimé.` : 'Cette action est irréversible.';
+  document.getElementById('confirmOverlay').classList.add('open');
+  setTimeout(() => document.querySelector('#confirmOverlay .btn-danger').focus(), 80);
+}
+
+function closeConfirm() {
+  document.getElementById('confirmOverlay').classList.remove('open');
+  pendingDeleteId = null;
+}
+
+function confirmDelete() {
+  if (!pendingDeleteId) return;
+  const id = pendingDeleteId;
+  tickets = tickets.filter(t => t.id !== id);
+  closeConfirm();
+  render();
+  toast(`🗑️ Ticket ${id} supprimé`);
+}
+
+/* ============================================================
+   TOAST
+============================================================ */
+let toastTimer = null;
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
+}
+
+/* ============================================================
+   KEYBOARD NAVIGATION
+============================================================ */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeCreateModal();
+    closeConfirm();
+  }
+
+  // Enter in modal = submit (but NOT in textarea)
+  if (e.key === 'Enter'
+    && document.getElementById('createOverlay').classList.contains('open')
+    && e.target.tagName !== 'TEXTAREA'
+    && e.target.tagName !== 'BUTTON') {
+    e.preventDefault();
+    submitCreate();
+  }
+});
+
+// Reset validation error on input
+document.getElementById('fTitle').addEventListener('input', () => {
+  clearError('fTitle', 'fTitleErr');
+});
+
+/* ============================================================
+   MOBILE SIDEBAR
+============================================================ */
+function toggleSidebar() {
+  const s = document.getElementById('sidebar');
+  const b = document.getElementById('sidebarBackdrop');
+  s.classList.toggle('open');
+  b.classList.toggle('show');
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarBackdrop').classList.remove('show');
+}
+
+/* ============================================================
+   INIT
+============================================================ */
+render();
+</script>
+</body>
+</html>
