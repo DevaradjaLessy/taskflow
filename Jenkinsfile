@@ -1,25 +1,34 @@
 pipeline {
     agent any
 
+    environment {
+        VERSION = "1.${BUILD_NUMBER}"
+    }
+
     stages {
 
         stage('Checkout') {
             steps {
-                echo 'Récupération du code source...'
+                checkout scm
+            }
+        }
+
+        stage('Install') {
+            steps {
+                sh 'npm install'
             }
         }
 
         stage('Test') {
             steps {
-                echo 'Lancement des tests...'
-                sh 'node app.test.js'
+                sh 'npm test'
             }
         }
 
-        stage('Build Docker') {
+        stage('Build & Tag Docker') {
             steps {
-                echo 'Construction de l image Docker...'
-                sh 'docker build -t taskflow:latest .'
+                sh "docker build -t taskflow:${VERSION} ."
+                sh "docker tag taskflow:${VERSION} taskflow:latest"
             }
         }
 
@@ -27,10 +36,10 @@ pipeline {
 
     post {
         success {
-            echo 'Pipeline terminé avec succès !'
+            echo "✅ Pipeline OK — image taskflow:${VERSION} prête"
         }
         failure {
-            echo 'Echec du pipeline — vérifier les logs.'
+            echo "❌ Échec pipeline — vérifier les logs"
         }
     }
 }
